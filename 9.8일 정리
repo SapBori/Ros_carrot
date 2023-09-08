@@ -1,0 +1,79 @@
+SaveFollow(const string &file) : as_~~ , tfListener~~ mbclient~~ -> 생성자 내부 변수 초기화 과정
+
+
+boost::bind -> 여러개의 내부 변수를 한개의 변수로 묶어준다.
+- actionServer에서 사용하기에 result와 feedback를 하나의 변수로 묶음 ??
+
+path_pub 
+	- nav_msgs의 형태로 publish 한다 -> <nav_msg::Path> 
+	- advertise -> 이 publish 노드를 어떤 상태에서든 Subscribe 할 수 있도록 한다?
+	
+	
+	
+actionlib:일:SimpleAciotnServer<kw_msgs::CarrotAction> -> CarrotAction 형태로 액션 서버 운용
+action -> Service의 비동기적 호출 
+	 
+맵 관련 객체
+tf2_ros::Buffer -> 변환시의 임시 저장공간
+tf2_ros::TransformStamped -> 맵과 맵을 변환 후 지금까지의 정보를 저장하는 변수 
+geometry_msgs::TransformStamped transformStampd -> 변환된 정보 중 geometry_msgs 형태로 저장된 객체 변수(현재 위치,속도)
+	 
+경로 관련 객체
+vector<geometry_msgs::PostStamped> waypoints = 목표 좌표들을 geometry_msgs::PostStamped 형태로 저장하는 벡터 객체변수
+nav_msg::Path -> Navigation을 위한 path를 저장하는 객체변수
+	 
+	 
+
+움직임 관련 객체
+
+actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> mbclient
+-> Client로 Goal(목표 Point)를 보내고 feedback, result 를 받아온다. 
+
+move_base_msgs::MoveBaseGoal 
+-> 움직임 목표 포인트를 저장하는 객체변수
+geometry_msgs::PoseStamped carrot_point
+-> 이전 위치 포인트를 저장하는 객체변수
+ros::Publisher point_pub;
+-> Carrot으로 받은 목표 Point를 저장하는 객체변수
+
+
+Private 함수
+1. ExecuteCB(CarrotGoal 형태로 변수 받기) -> 이는 actionserver에서 받아옴
+	- 1. goal의 func ==0 -> 저장 , 그 외는 Following
+	- 2. 저장 부분
+		full_name = 파일 명과 파일 위치를 하나의 변수로 지정
+		cf = ActionServer에서 Feedback 값(current,remaining) 를 저장하는 객체변수
+		old_transformStamped = geometry_msgs::TransformStamped의 형태로 저장하는 변수, 이전 위치를 저장해서 속도값 및 위치를 저장하는 변수
+		-2.1 isPreemptedRequested() -> action의 요청이 새로 들어온건지 검사(기존의 요청 무시하고 선점 해야하는지 검사) 
+			-> 새로 들어오지 않았으면 
+				transformStamped에 변환된 정보 중 geometry_msg 정보를 저장
+				- 이전 위치와 현재 위치의 거리가 0.x 이상 차이 나면
+				   현재 위치(translation x,y) 회전각(rotation x,y,z,w)를 outfile의 변수에 저장(ofstream)
+				   ActionFeedback를 증가
+				   old_transformeStamped를 갱신
+			ActionServer의 Feedback를 publish
+		action이 끝나면 CarrotResult를 actionserver가 선점하도록 setPreempted()
+	-3. Following 부분
+	vector 변수 초기화(새로운 Path Point를 저장하기 위해서)
+	goal->path 확인 -> 어떤 저장된 경로를 따라갈지 확인
+	ifstream txt파일을 읽어오기
+	std::getline(file,line) -> file를 한줄한줄 읽기 -> file이나 글자가 없으면 0 반환
+	txt 파일이 , 로 구분 되었기에 std::stod로 data 스택 객체 선언 후 여기에 push_back 함(글자가 없을때 까지)
+	끝나면 new_goal 선언
+	new_goal에 스택에 저장된 data를 대입(x,y,r,p,y,w)(0~5) - 저장할때 z는 넣지 않았기에 6개임
+	vector 인 waypoint에 new_goal를 push_back
+	다 읽으면 파일을 닫음
+	새로운 선점시도 action이 요청되지 않고, 목표에 도착하지 못했으면
+		현재 위치 구하고,
+		Path point 발행
+		ActionResult 객체 생성 후 waypoints의 크기-1
+		선점 요청 되면 Result 값을 선점하도록 보내고,
+		Result값을 Succeed로 변경
+		
+	
+		
+		
+2. bool goalReached()
+-> 목표 지점에 도달했는지 확인
+3. 
+
