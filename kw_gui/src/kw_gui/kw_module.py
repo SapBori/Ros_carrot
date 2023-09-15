@@ -29,19 +29,21 @@ class KWPlugin(Plugin):
 
         self._widget.setObjectName('KWPluginUi')
 
-        ## follow button seting
+        ## follow button setting
         self._widget.follow_path_1_Button.clicked.connect(self.followPathOneButtonCB)
         self._widget.follow_path_2_Button.clicked.connect(self.followPathTwoButtonCB)
         self._widget.follow_path_3_Button.clicked.connect(self.followPathThreeButtonCB)
 
-        ## save button seting
+        ## save button setting
         self._widget.save_path_1_Button.clicked.connect(self.savePathOneButtonCB)
         self._widget.save_path_2_Button.clicked.connect(self.savePathTwoButtonCB)
         self._widget.save_path_3_Button.clicked.connect(self.savePathThreeButtonCB)
 
+        # sequence button setting
+
+        self._widget.Sequence.clicked.connect(self.sequenceButtonCB)
         ## stop button setting
         self._widget.stopButton.clicked.connect(self.stopButtonCB)
-
         ## subscriber setting
         rospy.Subscriber("/kw/status", String, self.labelCB)
 
@@ -92,6 +94,10 @@ class KWPlugin(Plugin):
         push_button = "stop"
         self.button_click(push_button)
     
+    def sequenceButtonCB(self):
+        push_button = "sequence"
+        self.button_click(push_button)
+
 
     def shutdown_plugin(self):
         pass

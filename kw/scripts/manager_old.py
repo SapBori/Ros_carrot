@@ -17,8 +17,7 @@ class RobotMode(Enum):
     FollowingOne = 4
     FollowingTwo = 5
     FollowingThree = 6
-    Sequence = 7
-    Stop = 8
+    Stop = 7
 
 
 class Manager:
@@ -30,7 +29,6 @@ class Manager:
         self.carrot_client = actionlib.SimpleActionClient('/kw/carrot', CarrotAction)
         self.carrot_client.wait_for_server()
         self.action_goal = CarrotGoal()
-        self.sequence_state = 1
 
     
     def setStatus(self, request):
@@ -46,15 +44,6 @@ class Manager:
             self.request_status = RobotMode.SavingTwo
         elif request.btn == "save_path_3":
             self.request_status = RobotMode.SavingThree
-        elif request.btn == "sequence":
-            # if self.sequence_state == 1:
-            #     self.request_status = RobotMode.FollowingOne
-            # elif self.sequence_state == 2:
-            #     self.request_status = RobotMode.FollowingTwo
-            # elif self.sequence_state == 3:
-            #     self.sequence_state = RobotMode.FollowingThree
-            self.request_status = RobotMode.Sequence
-
         else:
             self.request_status = RobotMode.Stop
         return ButtonResponse(True)
@@ -74,15 +63,12 @@ class Manager:
             msg.data = "follow path two"
         elif self.robot_status == RobotMode.FollowingThree:
             msg.data = "follow path three"
-        elif self.robot_status == RobotMode.Sequence:
-            msg.data = "Sequencing state root : " + self.sequence_state
         else:
             msg.data = "waiting..."
-        
+        #print(msg.data)
         self.gui_pub.publish(msg)
-
+    
     def setMotion(self):
-        #print(self.carrot_client.get_state())
         if self.robot_status == RobotMode.Default:
             if self.request_status == RobotMode.Stop or self.request_status == RobotMode.Default:
                 pass
@@ -90,21 +76,13 @@ class Manager:
                 self.save()
             elif self.request_status == RobotMode.FollowingOne or self.request_status == RobotMode.FollowingTwo or self.request_status == RobotMode.FollowingThree:
                 self.follow()
-            elif self.request_status == RobotMode.Sequence:
-                while(self.sequence_state < 3):
-                    self.sequence_mode()
-                self.sequence_state = 1
-
-        elif self.robot_status == RobotMode.Sequence:
-            if self.request_status == RobotMode.Stop:
-                self.stop()
-            else :
-                self.sequence_mode()
         else:
             if self.request_status == RobotMode.Stop:
                 self.stop()
             else:
                 pass
+        self.request_status = RobotMode.Default
+
             # else:
     
     def save(self):
@@ -125,44 +103,15 @@ class Manager:
     def follow(self):
         self.action_goal.func = 1
         if self.request_status == RobotMode.FollowingOne:
-            self.action_goal.path = 1
-            self.robot_status = RobotMode.FollowingOne
-        elif self.request_status == RobotMode.FollowingTwo:
-            self.action_goal.path = 2
-            self.robot_status = RobotMode.FollowingTwo
-        else:
-            self.action_goal.path= 3
-            self.robot_status = RobotMode.FollowingThree
-        
-        self.carrot_client.send_goal(self.action_goal)
-
-    def sequence_mode(self):
-         # when is Action Done = Action.State == 3
-        print(self.carrot_client.get_state())
-        self.action_goal.func = 1
-        if self.request_status == RobotMode.Sequence and self.sequence_state==1 :
             self.action_goal.path =1
             self.robot_status = RobotMode.FollowingOne
-            
-            if self.carrot_client.get_state() == 3:
-                self.sequence_state +=1
-
-        elif self.request_status == RobotMode.Sequence and self.sequence_state==2:
+        elif self.request_status == RobotMode.FollowingTwo:
             self.action_goal.path =2
             self.robot_status = RobotMode.FollowingTwo
-
-            if self.carrot_client.get_state() == 3:
-                self.sequence_state +=1
-
-        elif self.request_status == RobotMode.Sequence and self.sequence_state==3:
-            self.action_goal.path =3
+        else:
+            self.action_goal.path=3
             self.robot_status = RobotMode.FollowingThree
-
-            if self.carrot_client.get_state() == 3:
-                self.request_status = RobotMode.Default
-                self.robot_status = RobotMode.Default
-                self.stop()
-                #self.sequence_state = 1
+        
         self.carrot_client.send_goal(self.action_goal)
 
     def stop(self):
@@ -174,18 +123,19 @@ class Manager:
         else:
             self.robot_status=RobotMode.Default
         
-        print(str(self.carrot_client.get_state()))
+        #print(str(self.carrot_client.get_state()))
                 
     
 def main():
     try:
         rospy.init_node('manager')
         robo = Manager()
-        rate = rospy.Rate(15)
+
+        rate = rospy.Rate(10)
         while not rospy.is_shutdown():
             robo.getActionStatus()
-            robo.publishStatus()
             robo.setMotion()
+            robo.publishStatus()
             rate.sleep()
 
     except rospy.ROSInterruptException:
