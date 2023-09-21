@@ -5,4 +5,4 @@
 # Ros Carrot Navigation Move 
 - Scout Mini - Agilex
 
-[Ros_carrot](Carrot_nav.gif)
+<img src=".Carrot_nav.gif" width="600px" height="400px">
